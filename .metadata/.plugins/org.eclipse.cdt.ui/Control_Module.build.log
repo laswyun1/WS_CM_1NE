@@ -1,19 +1,10 @@
-23:16:13 **** Incremental Build of configuration Debug for project Control_Module ****
+00:28:48 **** Incremental Build of configuration Debug for project Control_Module ****
 make -j16 all 
-arm-none-eabi-gcc -o "Control_Module.elf" @"objects.list"   -mcpu=cortex-m7 -T"C:\Users\INVINCIBLE\Documents\GitHub\WS_CM_1NE\WS_CM\Control_Module\STM32H743ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Control_Module.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: Control_Module.elf
- 
 arm-none-eabi-size  Control_Module.elf 
-arm-none-eabi-objdump -h -S Control_Module.elf  > "Control_Module.list"
    text	   data	    bss	    dec	    hex	filename
- 204288	    964	 475316	 680568	  a6278	Control_Module.elf
-arm-none-eabi-objcopy  -O binary Control_Module.elf  "Control_Module.bin"
+ 204200	    964	 475324	 680488	  a6228	Control_Module.elf
 Finished building: default.size.stdout
  
-Finished building: Control_Module.bin
- 
-Finished building: Control_Module.list
- 
 
-23:16:16 Build Finished. 0 errors, 0 warnings. (took 3s.191ms)
+00:28:50 Build Finished. 0 errors, 0 warnings. (took 1s.446ms)
 

@@ -16,3 +16,13 @@ Command-line arguments:  -os win32 -ws win32 -arch x86_64
 
 !ENTRY org.eclipse.cdt.core 1 0 2024-03-21 21:30:44.977
 !MESSAGE Indexed 'Control_Module' (294 sources, 666 headers) in 16.3 sec: 91,339 declarations; 328,742 references; 3 unresolved inclusions; 7,198 syntax errors; 426 unresolved names (0.1%)
+
+!ENTRY com.st.stm32cube.ide.mcu.stackanalyzer 4 0 2024-03-21 23:27:06.511
+!MESSAGE Stackanalyzer failed to analyze input
+!STACK 0
+java.lang.Exception: File: C:\Users\INVINCIBLE\Documents\GitHub\WS_CM_1NE\WS_CM\Control_Module\Debug\Control_Module.elfdo not exists
+	at com.st.stm32cube.ide.mcu.utils.assembly.Disassembler.<init>(Disassembler.java:56)
+	at com.st.stm32cube.ide.mcu.utils.assembly.Disassembler.<init>(Disassembler.java:83)
+	at com.st.stm32cube.ide.mcu.stackanalyzer.ui.StackAnalyzerView.inputChanged(StackAnalyzerView.java:954)
+	at com.st.stm32cube.ide.mcu.stackanalyzer.ui.StackAnalyzerView.lambda$16(StackAnalyzerView.java:1327)
+	at java.base/java.lang.Thread.run(Thread.java:833)

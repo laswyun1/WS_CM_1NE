@@ -422,6 +422,7 @@ typedef enum _DOP_PDOID_Gait_t{
 	PDO_ID_GAIT_GYR_Z,
 
 	PDO_ID_GAIT_QUATERNION,
+
 	/* USER CODE STOP*/
 	PDO_ID_GAIT_NUM
 } DOP_PDOID_Gait_t;

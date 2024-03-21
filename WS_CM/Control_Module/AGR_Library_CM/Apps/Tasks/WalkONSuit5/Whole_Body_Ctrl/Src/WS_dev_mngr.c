@@ -595,12 +595,11 @@ void Activate_MD_Msg_Hdlr_task(int MD_idx)
 	/*(1) Set MSG Routines */
     SetRoutine(&md_obj[MD_idx].data.task_msg, ROUTINE_ID_MSG_PDO_SEND);
     sdo_unit = DOPI_CreateSDOUnit(&md_obj[MD_idx].bb, TASK_ID_MSG,      SDO_ID_MSG_SET_ROUTINE,      SDO_REQU, md_obj[MD_idx].data.task_msg.n_routines);
-//    sdo_unit = DOPI_CreateSDOUnit(&md_obj[MD_idx].bb, TASK_ID_MSG,      SDO_ID_MSG_SET_ROUTINE,      SDO_REQU,     1);
     DOPI_AppendSDO(&sdo_unit, &sdo_msg);
 
     /*(2) Set MSG PDO */
-    uint8_t    t_ListPDO_size = 15;
-    uint8_t t_ListPDO[30]  = {
+    uint8_t    t_ListPDO_size = 10;
+    uint8_t t_ListPDO[20]  = {
     		TASK_ID_GAIT, 	   PDO_ID_GAIT_QUATERNION,
 
     	    TASK_ID_GRF,	   PDO_ID_GRF_S2X,
@@ -616,7 +615,7 @@ void Activate_MD_Msg_Hdlr_task(int MD_idx)
     		TASK_ID_GRF,	   PDO_ID_GRF_S4Z,
     };
 
-    sdo_unit = DOPI_CreateSDOUnit(&md_obj[MD_idx].bb, TASK_ID_MSG,      SDO_ID_MSG_PDO_LIST,         SDO_REQU, t_ListPDO_size);
+    sdo_unit = DOPI_CreateSDOUnit(&md_obj[MD_idx].bb, TASK_ID_MSG,      SDO_ID_MSG_PDO_LIST,         SDO_REQU,  t_ListPDO_size);
     sdo_unit.param.data = t_ListPDO;
     DOPI_AppendSDO(&sdo_unit, &sdo_msg);
 
@@ -1025,32 +1024,22 @@ static void SetupDOD(MD_Obj* obj)
 
     DOPI_SetSDOAddr(&obj->bb, TASK_ID_MSG, SDO_ID_MSG_PDO_LIST,    ListPDO);
 
-    /* IMU */
-    // SDO
-	DOPI_SetSDOAddr(&obj->bb, TASK_ID_IMU, SDO_ID_IMU_SET_STATE,      &obj->data.task_imu.state);
-	DOPI_SetSDOAddr(&obj->bb, TASK_ID_IMU, SDO_ID_IMU_SET_ROUTINE,     obj->data.task_imu.routines);
-
-    // PDO
-    DOPI_SetPDOAddr(&obj->bb, TASK_ID_IMU, PDO_ID_IMU_QUATERNION,    &obj->data.quaternion);
-
-//    DOPI_SetPDOAddr(&obj->bb, TASK_ID_LOWLEVEL, PDO_ID_LOWLEVEL_ACTUAL_CURRENT,   &obj->data.actual_current);
-//   DOPI_SetPDOAddr(&obj->bb, TASK_ID_MIDLEVEL, PDO_ID_MIDLEVEL_ACTUAL_POSITION, &obj->data.actual_position);
-    //if (obj->is_hip == 0) {
-    // 	DOPI_SetPDOAddr(&obj->bb, TASK_ID_MIDLEVEL, PDO_ID_MIDLEVEL_ABS_ANKLE_DEGREE, &obj->data.ankle_encoder);
-    //}
 
     /* GRF */
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GAIT, PDO_ID_GAIT_QUATERNION,    &quatVal[0]);
+
     DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S2X,    &grfVal[0]);
     DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S2Y,    &grfVal[1]);
     DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S2Z,    &grfVal[2]);
+
     DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S3X,    &grfVal[3]);
     DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S3Y,    &grfVal[4]);
     DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S3Z,    &grfVal[5]);
+
     DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S4X,    &grfVal[6]);
     DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S4Y,    &grfVal[7]);
     DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S4Z,    &grfVal[8]);
 
-    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GAIT, PDO_ID_GAIT_QUATERNION,    &quatVal[0]);
     /* Core */
 
     /* Exts
@@ -1181,10 +1170,9 @@ void SetPDO_1NE(int MD_idx)
  	DOPI_SDOUnit_t sdoUnit;
  	DOPI_ClearSDO(&sdo_msg);
 
- 	static uint8_t PDOList[6] = {TASK_ID_GRF, PDO_ID_GRF_S2X,
-								 TASK_ID_GRF, PDO_ID_GRF_S2Y,
-								 TASK_ID_GRF, PDO_ID_GRF_S2Z,
- 								};
+ 	static uint8_t PDOList[2] = {
+ 	    			TASK_ID_GAIT, 	   PDO_ID_GAIT_QUATERNION
+ 	};
  	memcpy(md_obj[MD_idx].data.pdo_list, PDOList, sizeof(PDOList));
  	sdoUnit = DOPI_CreateSDOUnit(&md_obj[MD_idx].bb, TASK_ID_MSG, SDO_ID_MSG_PDO_LIST, SDO_REQU, sizeof(PDOList)/2);
  	DOPI_AppendSDO(&sdoUnit, &sdo_msg);

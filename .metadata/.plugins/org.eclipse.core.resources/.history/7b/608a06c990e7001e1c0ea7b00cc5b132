@@ -1,0 +1,782 @@
+#include "WS_whole_body_ctrl.h"
+
+#ifdef WALKON5_CM_ENABLED
+/**
+ *-----------------------------------------------------------
+ *              TYPE DEFINITIONS AND ENUMERATIONS
+ *-----------------------------------------------------------
+ * @brief Enumerated types and structures central to this module.
+ */
+
+
+
+
+/**
+ *------------------------------------------------------------
+ *                      GLOBAL VARIABLES
+ *------------------------------------------------------------
+ * @brief Variables accessible throughout the application.
+ */
+
+TaskObj_t wholeBodyCtrl;
+uint8_t error_code;
+
+float enabled_time = 0; // ms
+
+JointStruct state;  // HW --> CM
+JointStruct target; // CM --> HW
+JointStruct cmd;    // AM --> CM
+
+uint32_t whole_body_loop_time = 0;
+
+float effort_buff[ACTUATOR_NUM] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+float effort_limit_upper[ACTUATOR_NUM];
+float effort_limit_lower[ACTUATOR_NUM];
+
+
+Init_IncEnc_Angle InitIncEncObj;
+uint32_t CommLoopTimeElap = 0;
+uint32_t ControlLoopTimeElap = 0;
+
+extern osSemaphoreId_t sdio_sync_semaphore;			//sdio transmit sync semaphore
+extern osMutexId_t mutex_sd_buffering;				//buffering mutex
+
+uint8_t sd_buf_1[SWAP_SD_BUF_SIZE] __attribute__((section(".FATFS_RAMD1_data")));	// switching sd buffer 1
+uint8_t sd_buf_2[SWAP_SD_BUF_SIZE] __attribute__((section(".FATFS_RAMD1_data")));	// switching sd buffer 2
+
+uint_fast16_t sd_buf_1_pos = 0;						//sd buf 1 position(index)
+uint_fast16_t sd_buf_2_pos = 0;						//sd buf 2 position(index)
+
+uint8_t *sd_buf_cur = sd_buf_1;						//current buffer pointer : start with sd buf 1
+uint8_t *sd_buf_next = sd_buf_2;					//next buffer pointer
+
+// uint8_t sdSendData[SEND_DATA_SIZE] ;                 //data buffer
+/* For H10 Battery Usage Data Logging */
+uint8_t sdSendData[SEND_DATA_SIZE] __attribute__((section(".FATFS_RAMD1_data")));   //data buffer
+
+int convert_res = 0;
+uint32_t dataSaveCnt = 0;
+
+static uint32_t lastDataSaveTime = 0;
+static uint32_t oneMinuteCnt = 0;
+uint8_t dataSaveFinished = 0;
+//uint16_tt duration = 5;
+/************/
+
+/** ADD(end) (2023-03-16-2:36) */
+
+/************* DEMO: Do Some Test  *************/
+float tmpcmd[6] = {0, 0, 0, 0, 0, 0};
+
+
+/**
+ *------------------------------------------------------------
+ *                      STATIC VARIABLES
+ *------------------------------------------------------------
+ * @brief Variables local to this module.
+ */
+
+
+
+
+/**
+ *------------------------------------------------------------
+ *                 STATIC FUNCTION PROTOTYPES
+ *------------------------------------------------------------
+ * @brief Static Function prototypes for this module.
+ */
+
+/* ------------------- STATE FUNCTION ------------------- */
+static void StateOff_Ent(void);
+static void StateOff_Run(void);
+static void StateStandby_Ent(void);
+static void StateStandby_Run(void);
+static void StateEnable_Ent(void);
+static void StateEnable_Run(void);
+static void StateEnable_Ext(void);
+static void StateError_Ent(void);
+static void StateError_Run(void);
+
+static int Get_Init_IncEncoder_Angle(void);
+static void Set_Init_IncEncoder_Angle(void);
+
+static void InitJointStruct(JointStruct* joint_struct);
+static void UpdateJointStateAndError(void);
+
+/* ------------------- SDO CALLBACK ------------------- */
+
+static void SaveDataMassStorage(void);
+static inline void _SD_DBuffered_Transmit(uint8_t *data, uint_fast16_t data_len);
+static void fillArrayWithVariable(int var, char byteArray[], int arraySize);				// data generator
+static void intToStr(int num, char str[], int maxSize);										// integer to string translator
+
+/* Data Processing 2024.01.30 By HD (Not used sprintf Ver, to be deleted soon) */
+static void ReverseStr(char* str, int length);
+static void IntToStringRec(int value, char* output, int* index);
+static void IntToString(int value, char* output);
+static int FindStringLength(char* str, int index);
+static void FloatToString(float value, char* output, int afterpoint);
+static void FillBufferData(DataPoint data[], int numDataPoints, char buffer[], int bufferSize);
+
+/**
+ *------------------------------------------------------------
+ *                      PUBLIC FUNCTIONS
+ *------------------------------------------------------------
+ * @brief Functions that interface with this module.
+ */
+
+DOP_COMMON_SDO_CB(wholeBodyCtrl)
+
+void InitWholeBodyCtrl()
+{
+    /* Init */
+    DOPC_AssignTaskID(&wholeBodyCtrl, TASK_IDX_WHOLE_BODY_CTRL);
+    wholeBodyCtrl.period = 1;
+    InitTask(&wholeBodyCtrl);
+    InitJointStruct(&state);
+    InitJointStruct(&target);
+    InitJointStruct(&cmd);
+
+    /**************** MD Test ****************/
+    //MD_Init();
+
+    //Set_Robot_Information();
+    /*****************************************/
+
+    /* State Definition */
+    TASK_CREATE_STATE(&wholeBodyCtrl, TASK_STATE_OFF,     StateOff_Ent,     StateOff_Run,     NULL,            true);
+    TASK_CREATE_STATE(&wholeBodyCtrl, TASK_STATE_STANDBY, StateStandby_Ent, StateStandby_Run, NULL,            false);
+    TASK_CREATE_STATE(&wholeBodyCtrl, TASK_STATE_ENABLE,  StateEnable_Ent,  StateEnable_Run,  StateEnable_Ext, false);
+    TASK_CREATE_STATE(&wholeBodyCtrl, TASK_STATE_ERROR,   StateError_Ent,   StateError_Run,   NULL,            false);
+
+    /* Routine Definition */
+
+    /* DOD Definition */
+    // DOD
+    DOP_CreateDOD(TASK_IDX_WHOLE_BODY_CTRL);
+
+    // PDO
+    DOP_COMMON_PDO_CREATE(TASK_IDX_WHOLE_BODY_CTRL, wholeBodyCtrl);
+
+    // SDO
+    DOP_COMMON_SDO_CREATE(TASK_IDX_WHOLE_BODY_CTRL);
+
+
+    /***** (1) Download FSM *****/
+    // Load FSM File on Flash to RAM
+    //Download_FSM1();
+    //Download_Test_FSM(FSM2_File);
+
+    /***** (2) Download MotionMap *****/
+    /* (Begin) For File Save Unit Test */
+    //Make_MotionMap_Examples();
+    //Save_MotionMap();
+    //Download_MotionMap();
+    Get_Max_PFI_Vectors_Length();
+    //MM_SAVE_GOOD = Check_MM_Save();
+    //Get_Max_PFI_Vectors_Length();
+    /* (End) For File Save Unit Test */
+
+/*    Reset_MotionMap(0);
+    Download_MotionSet(MS_STAND,           c_vectors_FF_PD_DOB, p_vectors_stand,                 NULL, NULL);
+    Download_MotionSet(MS_SQUAT,           c_vectors_FF_PD_DOB, p_vectors_squat,                 NULL, NULL);
+    Download_MotionSet(MS_AIR_SIT,         c_vectors_FF_PD_DOB, p_vectors_air_sit,               NULL, NULL);
+    Download_MotionSet(MS_SIT,             c_vectors_FF_PD_DOB, p_vectors_sit,                   NULL, NULL);
+    Download_MotionSet(MS_SIT2STAND,       c_vectors_FF_PD_DOB, p_vectors_sit2stand,             NULL, NULL);
+    Download_MotionSet(MS_STAND2SIT,       c_vectors_FF_PD_DOB, p_vectors_stand2sit,             NULL, NULL);
+    Download_MotionSet(MS_DANCE,           c_vectors_FF_PD_DOB, p_vectors_dance,                 NULL, NULL);
+    Download_MotionSet(MS_KNEE_TEST,       c_vectors_FF_PD_DOB, p_vectors_knee_test,             NULL, NULL);
+    Download_MotionSet(MS_L_HALF_SWING,    c_vectors_FF_PD_DOB, p_vectors_left_half_swing,       NULL, NULL);
+    Download_MotionSet(MS_L_FULL_SWING,    c_vectors_FF_PD_DOB, p_vectors_left_full_swing,       NULL, NULL);
+    Download_MotionSet(MS_R_FULL_SWING,    c_vectors_FF_PD_DOB, p_vectors_right_full_swing,      NULL, NULL);
+    Download_MotionSet(MS_L_FOOT_UP,       c_vectors_FF_PD_DOB, p_vector_left_foot_up,           NULL, NULL);
+    Download_MotionSet(MS_R_FOOT_UP,       c_vectors_FF_PD_DOB, p_vector_right_foot_up,          NULL, NULL);
+    Download_MotionSet(MS_L_TILT,          c_vectors_FF_PD_DOB, p_vector_left_tilt,              NULL, NULL);
+    Download_MotionSet(MS_R_TILT,          c_vectors_FF_PD_DOB, p_vector_right_tilt,             NULL, NULL);*/
+
+    /***** (3) Download DMS *****/
+    /* (Begin) For File Save Unit Test */
+    //Make_DMS_Examples();
+    //Save_DMS();
+    Download_DMS();
+    //DMS_SAVE_GOOD = Check_DMS_Save();
+    /* (End) For File Save Unit Test */
+    //Download_Test_DMS(DMSFile1);
+
+    /***** (4) Download RS *****/
+    // Load Robot Setting File on Flash to RAM
+//    Download_RobotSetting();
+    Download_Test_RobotSetting(RS_File_1NE);
+    /* (End) For File Save Unit Test */
+    //Download_Test_RobotSetting(RS_File1);
+
+    /* Initiation */
+    All_MD_Init();
+    Make_Overall_PDODataList();
+}
+
+void RunWholeBodyCtrl()
+{
+    RunTask(&wholeBodyCtrl);
+}
+
+
+/**
+ *------------------------------------------------------------
+ *                      STATIC FUNCTIONS
+ *------------------------------------------------------------
+ * @brief Functions intended for internal use within this module.
+ */
+
+/* ------------------- STATE FUNCTION ------------------- */
+/* Off state */
+static void StateOff_Ent(void)
+{
+    static uint8_t is_first_run = 1;
+    // Servo power OFF
+    IOIF_WriteGPIOPin(IOIF_GPIO_PORT_D, IOIF_GPIO_PIN_13, IOIF_GPIO_PIN_RESET); // PWR_48V_ENB_GPIO_Port, PWR_48V_ENB_Pin, GPIO_PIN_RESET
+
+    /************* DEMO: Turn OFF MTR  *************/
+    if (is_first_run == 0) {
+        BeepAlert(BEEP_ALERT_FREQ_HIGH, BEEP_ALERT_DUTY, BEEP_ALERT_TIME_VERY_SHORT, BEEP_ALERT_TIME_VERY_SHORT);
+        BeepAlert(BEEP_ALERT_FREQ_LOW,  BEEP_ALERT_DUTY, BEEP_ALERT_TIME_VERY_SHORT, BEEP_ALERT_TIME_VERY_SHORT);
+    } else {
+        is_first_run = 0;
+    }
+    /***********************************************/
+    osDelay(1000); // Off time
+}
+
+uint8_t test_Enable = 0;
+uint8_t as1 = 0;
+
+static void StateOff_Run(void)
+{
+	static uint32_t is_start;
+	static uint16_t msg_activate;
+    osDelay(10);
+    UpdateJointStateAndError();
+
+//    static uint32_t chke = 0;
+//
+//    if (chke == 0){
+//    	SetPDO_1NE(14);
+//    }
+//
+//    if (chke == 1000){
+//    	SetALLRoutines_1NE();
+//    }
+//
+//    if (chke == 3000){
+//    	SetALLEnableStates_1NE();
+//    }
+//
+//    chke++;
+
+    if (!msg_activate)
+    {
+        if (is_start > 300) {
+        	 BeepAlert(BEEP_ALERT_FREQ_HIGH, BEEP_ALERT_DUTY, BEEP_ALERT_TIME_LONG, BEEP_ALERT_TIME_VERY_SHORT);
+        	 BeepAlert(BEEP_ALERT_FREQ_LOW,  BEEP_ALERT_DUTY, BEEP_ALERT_TIME_LONG, BEEP_ALERT_TIME_VERY_SHORT);
+//        	Activate_All_MD_Msg_Hdlr_task();
+        	msg_activate = 1;
+        }
+    }
+
+    if (!IOIF_ReadGPIOPin(IOIF_GPIO_PORT_D, IOIF_GPIO_PIN_4)) // BTN_GUIDE_0_Pin
+    {
+        if (is_start > 500) {
+            BeepAlert(BEEP_ALERT_FREQ_HIGH, BEEP_ALERT_DUTY, BEEP_ALERT_TIME_VERY_SHORT, BEEP_ALERT_TIME_VERY_SHORT);
+            BeepAlert(BEEP_ALERT_FREQ_LOW,  BEEP_ALERT_DUTY, BEEP_ALERT_TIME_VERY_SHORT, BEEP_ALERT_TIME_VERY_SHORT);
+        	StateTransition(&wholeBodyCtrl.stateMachine, TASK_STATE_STANDBY);
+        	is_start = 0;
+        }
+    }
+
+
+    if (as1 == 1){
+    	SetPDO_1NE(14);
+    	as1 = 0;
+    }
+    if (as1 == 2){
+    	SetALLRoutines_1NE();
+    	as1 = 0;
+    }
+    if (as1 == 3){
+    	SetALLEnableStates_1NE();
+    	as1 = 0;
+    }
+
+
+//    if (test_Enable == 1)
+//    {
+//    	StateTransition(&wholeBodyCtrl.stateMachine, TASK_STATE_STANDBY);
+//    	test_Enable = 0;
+//    }
+
+
+	is_start++;
+
+}
+
+/* Standby state */
+static void StateStandby_Ent(void)
+{
+    uint8_t core_state = DOPC_GetTaskState(TASK_IDX_SYSTEM_CTRL);
+    if ((core_state != TASK_STATE_STANDBY) && (core_state != TASK_STATE_ENABLE)) {
+        // Unable to standby
+        StateTransition(&wholeBodyCtrl.stateMachine, TASK_STATE_OFF);
+    }
+	// Servo power ON
+	IOIF_WriteGPIOPin(IOIF_GPIO_PORT_D, IOIF_GPIO_PIN_13, IOIF_GPIO_PIN_SET); // PWR_48V_ENB_Pin, HIGH
+
+	osDelay(1000); // On time
+}
+
+/*****************************************************************************************************************************************************/
+static void StateStandby_Run(void)
+{
+	UpdateJointStateAndError();
+
+	static uint16_t is_start;
+
+    /******************************************************************************************************************************************************/
+
+    // HIP MD SDO & Routine Setting
+    //if (is_start == 0)   { Activate_All_MD_Msg_Hdlr_task(); }
+    if (is_start == 300) { UpdateJointStateAndError(); Get_Init_IncEncoder_Angle();}
+    if (is_start == 301) { Set_Init_IncEncoder_Angle();}
+    if (is_start == 400) { Send_Motion_Set(1);}
+    if (is_start == 401) { Set_MD_Current_Ctrl_Routines(MD_IDX_RH_COR); }
+    if (is_start == 402) { Set_MD_Current_Ctrl_Routines(MD_IDX_LH_COR); }
+    if (is_start == 403) { Set_MD_Current_Ctrl_Routines(MD_IDX_RH_ROT); }
+    if (is_start == 404) { Set_MD_Current_Ctrl_Routines(MD_IDX_LH_ROT); }
+    if (is_start == 405) { Set_MD_Current_Ctrl_Routines(MD_IDX_RH_SAG); }
+    if (is_start == 406) { Set_MD_Current_Ctrl_Routines(MD_IDX_LH_SAG); }
+    if (is_start == 407) { Set_MD_Current_Ctrl_Routines(MD_IDX_RK); }
+    if (is_start == 408) { Set_MD_Current_Ctrl_Routines(MD_IDX_LK); }
+    if (is_start == 409) { Set_MD_Current_Ctrl_Routines(MD_IDX_RA_MED); }
+    if (is_start == 410) { Set_MD_Current_Ctrl_Routines(MD_IDX_LA_MED); }
+    if (is_start == 411) { Set_MD_Current_Ctrl_Routines(MD_IDX_RA_LAT); }
+    if (is_start == 412) { Set_MD_Current_Ctrl_Routines(MD_IDX_LA_LAT); }
+
+    if (is_start == 420) { All_MD_EnableStates();}
+
+    if (is_start > 450)  {
+
+    	uint8_t core_state = DOPC_GetTaskState(TASK_IDX_SYSTEM_CTRL);
+
+    	if ((core_state != TASK_STATE_STANDBY) && (core_state != TASK_STATE_ENABLE)) {
+    		StateTransition(&wholeBodyCtrl.stateMachine, TASK_STATE_OFF);
+    	}
+
+    	StateTransition(&wholeBodyCtrl.stateMachine, TASK_STATE_ENABLE);
+
+
+    	is_start = 0;
+    }
+
+    is_start ++;
+
+   /******************************************************************************************************************************************************/
+}
+
+/* Enable state */
+static void StateEnable_Ent(void)
+{
+    /************* DEMO: Enable MTR  *************/
+
+    BeepAlert(BEEP_ALERT_FREQ_HIGH, BEEP_ALERT_DUTY, BEEP_ALERT_TIME_VERY_SHORT, BEEP_ALERT_TIME_VERY_SHORT);
+    BeepAlert(BEEP_ALERT_FREQ_HIGH, BEEP_ALERT_DUTY, BEEP_ALERT_TIME_VERY_SHORT, BEEP_ALERT_TIME_VERY_SHORT);
+    BeepAlert(BEEP_ALERT_FREQ_HIGH, BEEP_ALERT_DUTY, BEEP_ALERT_TIME_VERY_SHORT, BEEP_ALERT_TIME_VERY_SHORT);
+    BeepAlert(BEEP_ALERT_FREQ_HIGH, BEEP_ALERT_DUTY, BEEP_ALERT_TIME_VERY_SHORT, BEEP_ALERT_TIME_VERY_SHORT);
+
+    /*********************************************/
+    UpdateJointStateAndError();
+
+    Init_FSM();
+
+    // Record enabled time
+    enabled_time = IOIF_GetTick();
+}
+
+uint8_t test_MD_IDX, test_MD_IDX_f;
+float test_current, test_current_f;
+
+static void StateEnable_Run() // 1msec loop
+{
+    UpdateJointStateAndError();
+    SaveDataMassStorage();
+
+    //Run_FSM();
+
+    if (test_MD_IDX != test_MD_IDX_f)
+    {
+    	Send_Auxilirary_Input(test_MD_IDX, test_current);
+
+		test_MD_IDX_f = test_MD_IDX;
+    }
+
+    if (test_current != test_current_f)
+    {
+    	Send_Auxilirary_Input(test_MD_IDX, test_current);
+
+    	test_current_f = test_current;
+    }
+
+    if (!IOIF_ReadGPIOPin(IOIF_GPIO_PORT_C, IOIF_GPIO_PIN_13))
+    {
+    	IOIF_WriteGPIOPin(IOIF_GPIO_PORT_D, IOIF_GPIO_PIN_13, IOIF_GPIO_PIN_RESET); // PWR_48V_ENB_GPIO_Port, PWR_48V_ENB_Pin, GPIO_PIN_RESET
+    	StateTransition(&wholeBodyCtrl.stateMachine, TASK_STATE_OFF);
+    }
+
+    /************************************************************************************/
+    uint8_t core_state = DOPC_GetTaskState(TASK_IDX_SYSTEM_CTRL);
+    if ((core_state != TASK_STATE_STANDBY) && (core_state != TASK_STATE_ENABLE)) {
+        // Unable to enable
+        StateTransition(&wholeBodyCtrl.stateMachine, TASK_STATE_OFF);
+    }
+    // (end)
+    whole_body_loop_time++;
+}
+
+static void StateEnable_Ext(void)
+{
+    All_MD_OffStates(&RS_File);
+}
+
+/* Error state */
+static void StateError_Ent(void)
+{
+
+}
+
+static void StateError_Run(void)
+{
+}
+
+/***********************************************/
+
+static int Get_Init_IncEncoder_Angle(void)
+{
+	InitIncEncObj.RH_COR_init_inc_angle = abs2inc_RH_COR(state.abs_pos[MD_IDX_RH_COR]);
+	InitIncEncObj.LH_COR_init_inc_angle = abs2inc_LH_COR(state.abs_pos[MD_IDX_LH_COR]);
+	InitIncEncObj.RH_ROT_init_inc_angle = abs2inc_RH_ROT(state.abs_pos[MD_IDX_RH_ROT]);
+	InitIncEncObj.LH_ROT_init_inc_angle = abs2inc_LH_ROT(state.abs_pos[MD_IDX_LH_ROT]);
+	InitIncEncObj.RH_SAG_init_inc_angle = abs2inc_RH_SAG(state.abs_pos[MD_IDX_RH_SAG]);
+	InitIncEncObj.LH_SAG_init_inc_angle = abs2inc_LH_SAG(state.abs_pos[MD_IDX_LH_SAG]);
+	InitIncEncObj.RK_init_inc_angle     = abs2inc_RK(state.abs_pos[MD_IDX_RK]);
+	InitIncEncObj.LK_init_inc_angle     = abs2inc_LK(state.abs_pos[MD_IDX_LK]);
+	InitIncEncObj.RA_MED_init_inc_angle = abs2inc_RA_MED(state.abs_pos[MD_IDX_RA_MED], state.abs_pos[MD_IDX_RA_LAT]);
+	InitIncEncObj.RA_LAT_init_inc_angle = abs2inc_RA_LAT(state.abs_pos[MD_IDX_RA_MED], state.abs_pos[MD_IDX_RA_LAT]);
+	InitIncEncObj.LA_MED_init_inc_angle = abs2inc_LA_MED(state.abs_pos[MD_IDX_LA_MED], state.abs_pos[MD_IDX_LA_LAT]);
+	InitIncEncObj.LA_LAT_init_inc_angle = abs2inc_LA_LAT(state.abs_pos[MD_IDX_LA_MED], state.abs_pos[MD_IDX_LA_LAT]);
+
+	return 0;
+}
+static void Set_Init_IncEncoder_Angle(void)
+{
+
+	Set_IncEncoder_Init_Angle(MD_IDX_RH_COR, InitIncEncObj.RH_COR_init_inc_angle);
+	Set_IncEncoder_Init_Angle(MD_IDX_LH_COR, InitIncEncObj.LH_COR_init_inc_angle);
+	Set_IncEncoder_Init_Angle(MD_IDX_RH_ROT, InitIncEncObj.RH_ROT_init_inc_angle);
+	Set_IncEncoder_Init_Angle(MD_IDX_LH_ROT, InitIncEncObj.LH_ROT_init_inc_angle);
+	Set_IncEncoder_Init_Angle(MD_IDX_RH_SAG, InitIncEncObj.RH_SAG_init_inc_angle);
+	Set_IncEncoder_Init_Angle(MD_IDX_LH_SAG, InitIncEncObj.LH_SAG_init_inc_angle);
+	Set_IncEncoder_Init_Angle(MD_IDX_RK,     InitIncEncObj.RK_init_inc_angle );
+    Set_IncEncoder_Init_Angle(MD_IDX_LK,     InitIncEncObj.LK_init_inc_angle );
+	Set_IncEncoder_Init_Angle(MD_IDX_RA_MED, InitIncEncObj.RA_MED_init_inc_angle);
+	Set_IncEncoder_Init_Angle(MD_IDX_LA_MED, InitIncEncObj.LA_MED_init_inc_angle);
+	Set_IncEncoder_Init_Angle(MD_IDX_RA_LAT, InitIncEncObj.RA_LAT_init_inc_angle);
+	Set_IncEncoder_Init_Angle(MD_IDX_LA_LAT, InitIncEncObj.LA_LAT_init_inc_angle);
+
+}
+
+static void InitJointStruct(JointStruct* joint_struct)
+{
+    for (int i = 0; i < ACTUATOR_NUM; ++i) {
+    	joint_struct->abs_pos[i] = 0;
+    	joint_struct->inc_pos[i] = 0;
+        joint_struct->vel[i] = 0;
+        joint_struct->cur_ref[i] = 0;
+        joint_struct->cur_act[i] = 0;
+    }
+}
+
+static void UpdateJointStateAndError()
+{
+    for (int MD_idx = 0; MD_idx < MAX_N_MD; ++MD_idx) {
+    	state.inc_pos[MD_idx]    = MD_GetDataset(MD_idx)->inc_actual_position;
+    	state.abs_pos[MD_idx]    = MD_GetDataset(MD_idx)->abs1_actual_position;
+    	state.cur_act[MD_idx]    = MD_GetDataset(MD_idx)->current_act;
+        state.cur_ref[MD_idx]    = MD_GetDataset(MD_idx)->current_ref;
+        state.pos_ref[MD_idx]    = MD_GetDataset(MD_idx)->position_ref;
+        state.quaternion[MD_idx] = MD_GetDataset(MD_idx)->quaternion;
+        state.tilt_angle[MD_idx] = MD_GetDataset(MD_idx)->tilt_angle;
+    }
+}
+
+/* ------------------- SDO CALLBACK ------------------- */
+
+static void SaveDataMassStorage(void)
+{
+	static float test = 0;
+//    if((dataCtrlLoopCnt - WHOLE_BODY_LOOP_START_CNT + 1) < (MIN_TO_MILLISEC * DATA_SAVE_TIME)) { //@1ms * MIN_TO_MILLISEC * SEND_DATA_SIZE(Byte) * DATA_SAVE_TIME(Min) : 21MByte Transfer within 5 Min.
+        /* Data Conversion To String & Save Buffer */
+        memset(sdSendData, 0, sizeof(sdSendData));
+//        dataSaveCnt = whole_body_loop_time - WHOLE_BODY_LOOP_START_CNT + 1;
+        convert_res = snprintf((char*)sdSendData, sizeof(sdSendData) - 2, "%"PRIu32"; %.2f;%.2f;%.2f;%.2f;",
+        		whole_body_loop_time, test, test+0.1, test+0.2);
+        test++;
+        // Check if there was enough space for the content and the CRLF, and null terminator.
+        if (convert_res >= 0 && convert_res < sizeof(sdSendData) - 2) {
+            // Append '\r', '\n', and null terminator '\0'.
+            sdSendData[convert_res] = '\r'; // Carriage Return
+            sdSendData[convert_res + 1] = '\n'; // Line Feed
+            // sdSendData[convert_res + 2] = '\0'; // Null terminator to mark end of the string
+        }
+
+        /* Buffered Transmit to SD */
+        _SD_DBuffered_Transmit(sdSendData, sizeof(sdSendData));
+//    }
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/* Key Function : SDIO Transmit with double buffer & swap(Switching) buffer algorithm */
+static inline void _SD_DBuffered_Transmit(uint8_t *data, uint_fast16_t data_len)
+{
+    osMutexAcquire(mutex_sd_buffering, BUFFER_SD_TIMEOUT);					// Mutex lock
+
+    uint_fast16_t *cur_buf_pos = (sd_buf_cur == sd_buf_1) ? &sd_buf_1_pos : &sd_buf_2_pos;
+    uint_fast16_t cur_buf_space = SWAP_SD_BUF_SIZE - *cur_buf_pos;
+
+    if (cur_buf_space >= data_len) {
+        memcpy(sd_buf_cur + *cur_buf_pos, data, data_len);
+        *cur_buf_pos += data_len;
+    } else {
+        memcpy(sd_buf_cur + *cur_buf_pos, data, cur_buf_space);
+        uint_fast16_t remaining_data_len = data_len - cur_buf_space;
+
+        if (sd_buf_cur == sd_buf_1) {
+            sd_buf_1_pos += cur_buf_space;
+            sd_buf_cur = sd_buf_2;
+            cur_buf_pos = &sd_buf_2_pos;
+            sd_buf_2_pos = 0;
+        } else {
+            sd_buf_2_pos += cur_buf_space;
+            sd_buf_cur = sd_buf_1;
+            cur_buf_pos = &sd_buf_1_pos;
+            sd_buf_1_pos = 0;
+        }
+
+        memcpy(sd_buf_cur, data + cur_buf_space, remaining_data_len);
+        *cur_buf_pos = remaining_data_len;
+
+        osSemaphoreRelease(sdio_sync_semaphore);							// release semaphore : start writing buffered data to SD card
+    }
+
+    osMutexRelease(mutex_sd_buffering);										// Mutex unlock
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/* Data Store Test by TJ */
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+static void intToStr(int num, char str[], int maxSize)
+{
+    int i = 0;
+    int isNegative = 0;
+
+    // 음수 체크
+    if (num < 0) {
+        isNegative = 1;
+        num = -num;
+    }
+
+    // 숫자를 역순으로 추출하여 문자열에 저장
+    do {
+        str[i++] = num % 10 + '0';
+        num /= 10;
+    } while (num > 0);
+
+    // 음수일 경우 '-'를 추가
+    if (isNegative) {
+        str[i++] = '-';
+    }
+
+    // 문자열 뒤집기
+    int len = i;
+    for (int j = 0; j < len / 2; j++) {
+        char temp = str[j];
+        str[j] = str[len - j - 1];
+        str[len - j - 1] = temp;
+    }
+
+    // 널 종료 문자('\0') 추가
+    str[i] = '\0';
+
+    // 문자열 길이가 maxSize보다 작을 경우 나머지를 널 바이트로 채움
+    for (int j = len; j < maxSize; j++) {
+        str[j] = '\0';
+    }
+}
+
+static void fillArrayWithVariable(int var, char byteArray[], int arraySize)
+{
+    // 배열을 널 바이트로 초기화합니다.
+    memset(byteArray, 0, arraySize);
+
+    // 변수를 문자열로 변환합니다.
+    char var_str[21];  // 최대 20자리 문자열 + 널 종료 문자('\0') 고려
+    intToStr(var, var_str, sizeof(var_str));
+
+    // 문자열을 배열에 복사합니다.
+    int i;
+    for (i = 0; i < arraySize - 2; i++) { // 2 바이트를 더 남겨두고 "\r\n"을 추가합니다.
+        byteArray[i] = var_str[i];
+    }
+
+    // 끝에 "\r\n" 추가합니다.
+    byteArray[i++] = '\r';
+    byteArray[i++] = '\n';
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/* Data Processing 2024.01.30 */
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+static void ReverseStr(char* str, int length)
+{
+    int start = 0;
+    int end = length - 1;
+    while (start < end) {
+        char temp = str[start];
+        str[start] = str[end];
+        str[end] = temp;
+        start++;
+        end--;
+    }
+}
+
+static void IntToStringRec(int value, char* output, int* index)
+{
+    if (value == 0) return;
+
+    int digit = value % 10;
+    if (digit < 0) digit = -digit;
+
+    output[(*index)++] = digit + '0';
+
+    IntToStringRec(value / 10, output, index);
+}
+
+static void IntToString(int value, char* output)
+{
+    int index = 0;
+    if (value < 0) {
+        output[index++] = '-'; // 음수 부호 추가
+        value = -value; // 값의 절대값을 사용합니다.
+    }
+
+    if (value == 0) {
+        output[index++] = '0';
+    } else {
+        IntToStringRec(value, output, &index);
+        if (value < 0) {
+            ReverseStr(output + 1, index - 1);
+        } else {
+            ReverseStr(output, index);
+        }
+    }
+    output[index] = '\0';
+}
+
+static int FindStringLength(char* str, int index)
+{
+    if (str[index] == '\0') {
+        return index;
+    }
+    return FindStringLength(str, index + 1);
+}
+
+static void FloatToString(float value, char* output, int afterpoint)
+{
+    // Extract integer part and convert
+    int ipart = (int)value;
+    IntToString(ipart, output);
+
+    // 문자열 길이 찾기
+    int i = 0;
+    while (output[i] != '\0') i++;
+
+    // Handle fractional part
+    if (afterpoint > 0) {
+        output[i++] = '.';
+        float fpart = value - (float)ipart;
+        if (value < 0) fpart = -fpart; // 음수 처리
+
+        // 소수점 이하 값을 문자열로 변환
+        for (int j = 0; j < afterpoint; j++) {
+            fpart *= 10.0;
+            int digit = (int)fpart;
+            output[i++] = '0' + digit;
+            fpart -= digit;
+        }
+        output[i] = '\0';
+    }
+}
+
+static void FillBufferData(DataPoint data[], int numDataPoints, char buffer[], int bufferSize)
+{
+    // 배열을 널 바이트로 초기화합니다.
+    memset(buffer, 0, bufferSize);
+
+    int i = 0;
+
+    for (int j = 0; j < numDataPoints; j++) {
+        char tempStr[16]; // 임시 문자열 버퍼(각 데이터마다 1:1대응), float의 최대 표현 자리수(16자리수)
+        memset(tempStr, 0, sizeof(tempStr)); // tempStr을 0으로 초기화
+
+        osMutexAcquire(mutex_sd_buffering, BUFFER_SD_TIMEOUT);    // Mutex lock
+
+        // 각 데이터 타입에 따른 처리
+        switch (data[j].DataTp) {
+            case DATATYPE_UINT32:
+                IntToString((int)data[j].uint32Data, tempStr);
+                break;
+            case DATATYPE_INT:
+                IntToString(data[j].intData, tempStr);
+                break;
+            case DATATYPE_INT16:
+                IntToString((int)data[j].int16Data, tempStr);
+                break;
+            case DATATYPE_FLOAT:
+                FloatToString(data[j].floatData, tempStr, 2); // 소수점 이하 2자리
+                break;
+            default:
+                tempStr[0] = '\0'; // 알 수 없는 데이터 타입 처리
+        }
+
+        // 버퍼에 문자열과 구분자 추가
+        int len = strlen(tempStr);
+        if (i + len + 2 < bufferSize - 2) { // +2는 구분자 공간, -2는 CRLF 공간
+            strncpy(&buffer[i], tempStr, len);
+            i += len;
+
+            // 모든 데이터에 구분자 추가
+            buffer[i++] = ';';
+            buffer[i++] = ' ';
+        }
+
+        osMutexRelease(mutex_sd_buffering);    // Mutex unlock
+    }
+
+    osMutexAcquire(mutex_sd_buffering, BUFFER_SD_TIMEOUT);    // Mutex lock
+
+    // 버퍼의 나머지 부분을 null로 채우기
+    while (i < bufferSize - 2) {
+        buffer[i++] = '\0';
+    }
+
+    // 버퍼의 끝에 "\r\n" 추가
+    buffer[i++] = '\r';
+    buffer[i++] = '\n';
+
+    osMutexRelease(mutex_sd_buffering);    // Mutex unlock
+}
+#endif /* WALKON5_CM_ENABLED */

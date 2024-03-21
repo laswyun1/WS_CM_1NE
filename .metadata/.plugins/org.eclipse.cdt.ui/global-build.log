@@ -1,20 +1,33 @@
-23:10:37 **** Incremental Build of configuration Debug for project Control_Module ****
+00:27:58 **** Incremental Build of configuration Debug for project Control_Module ****
 make -j16 all 
-arm-none-eabi-gcc "../AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_dev_mngr.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32H743xx -c -Og -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_dev_mngr.d" -MT"AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_dev_mngr.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_dev_mngr.o" @"AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_dev_mngr.c_includes.args"
-../AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_dev_mngr.c:1106:13: warning: 'ClearRoutine' defined but not used [-Wunused-function]
- 1106 | static void ClearRoutine(MD_TaskData* task_obj)
-      |             ^~~~~~~~~~~~
-../AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_dev_mngr.c: In function 'All_MD_Init':
-../AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_dev_mngr.c:129:55: warning: 'txfnc' may be used uninitialized in this function [-Wmaybe-uninitialized]
-  129 |                                 md_obj[MD_idx].tx_fnc = txfnc;
-      |                                 ~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+arm-none-eabi-gcc "../AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_whole_body_ctrl.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32H743xx -c -Og -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_whole_body_ctrl.d" -MT"AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_whole_body_ctrl.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_whole_body_ctrl.o" @"AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_dev_mngr.c_includes.args"
+../AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_whole_body_ctrl.c: In function 'SaveDataMassStorage':
+../AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_whole_body_ctrl.c:518:75: warning: format '%f' expects a matching 'double' argument [-Wformat=]
+  518 |         convert_res = snprintf((char*)sdSendData, sizeof(sdSendData) - 2, "%"PRIu32"; %.2f;%.2f;%.2f;%.2f;",
+      |                                                                           ^~~
+At top level:
+../AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_whole_body_ctrl.c:714:13: warning: 'FillBufferData' defined but not used [-Wunused-function]
+  714 | static void FillBufferData(DataPoint data[], int numDataPoints, char buffer[], int bufferSize)
+      |             ^~~~~~~~~~~~~~
+../AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_whole_body_ctrl.c:679:12: warning: 'FindStringLength' defined but not used [-Wunused-function]
+  679 | static int FindStringLength(char* str, int index)
+      |            ^~~~~~~~~~~~~~~~
+../AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_whole_body_ctrl.c:611:13: warning: 'fillArrayWithVariable' defined but not used [-Wunused-function]
+  611 | static void fillArrayWithVariable(int var, char byteArray[], int arraySize)
+      |             ^~~~~~~~~~~~~~~~~~~~~
+../AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_whole_body_ctrl.c:61:17: warning: 'oneMinuteCnt' defined but not used [-Wunused-variable]
+   61 | static uint32_t oneMinuteCnt = 0;
+      |                 ^~~~~~~~~~~~
+../AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_whole_body_ctrl.c:60:17: warning: 'lastDataSaveTime' defined but not used [-Wunused-variable]
+   60 | static uint32_t lastDataSaveTime = 0;
+      |                 ^~~~~~~~~~~~~~~~
 arm-none-eabi-gcc -o "Control_Module.elf" @"objects.list"   -mcpu=cortex-m7 -T"C:\Users\INVINCIBLE\Documents\GitHub\WS_CM_1NE\WS_CM\Control_Module\STM32H743ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Control_Module.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
 Finished building target: Control_Module.elf
  
 arm-none-eabi-size  Control_Module.elf 
 arm-none-eabi-objdump -h -S Control_Module.elf  > "Control_Module.list"
    text	   data	    bss	    dec	    hex	filename
- 204248	    964	 475316	 680528	  a6250	Control_Module.elf
+ 204200	    964	 475324	 680488	  a6228	Control_Module.elf
 arm-none-eabi-objcopy  -O binary Control_Module.elf  "Control_Module.bin"
 Finished building: default.size.stdout
  
@@ -22,67 +35,17 @@ Finished building: Control_Module.bin
  
 Finished building: Control_Module.list
  
-23:11:47 **** Incremental Build of configuration Debug for project Control_Module ****
+00:28:05 **** Incremental Build of configuration Debug for project Control_Module ****
 make -j16 all 
 arm-none-eabi-size  Control_Module.elf 
    text	   data	    bss	    dec	    hex	filename
- 204248	    964	 475316	 680528	  a6250	Control_Module.elf
+ 204200	    964	 475324	 680488	  a6228	Control_Module.elf
 Finished building: default.size.stdout
  
-23:13:13 **** Incremental Build of configuration Debug for project Control_Module ****
+00:28:48 **** Incremental Build of configuration Debug for project Control_Module ****
 make -j16 all 
-arm-none-eabi-gcc "../AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_dev_mngr.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32H743xx -c -Og -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_dev_mngr.d" -MT"AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_dev_mngr.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_dev_mngr.o" @"AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_dev_mngr.c_includes.args"
-../AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_dev_mngr.c:1106:13: warning: 'ClearRoutine' defined but not used [-Wunused-function]
- 1106 | static void ClearRoutine(MD_TaskData* task_obj)
-      |             ^~~~~~~~~~~~
-../AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_dev_mngr.c: In function 'All_MD_Init':
-../AGR_Library_CM/Apps/Tasks/WalkONSuit5/Whole_Body_Ctrl/Src/WS_dev_mngr.c:129:55: warning: 'txfnc' may be used uninitialized in this function [-Wmaybe-uninitialized]
-  129 |                                 md_obj[MD_idx].tx_fnc = txfnc;
-      |                                 ~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
-arm-none-eabi-gcc -o "Control_Module.elf" @"objects.list"   -mcpu=cortex-m7 -T"C:\Users\INVINCIBLE\Documents\GitHub\WS_CM_1NE\WS_CM\Control_Module\STM32H743ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Control_Module.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: Control_Module.elf
- 
 arm-none-eabi-size  Control_Module.elf 
-arm-none-eabi-objdump -h -S Control_Module.elf  > "Control_Module.list"
    text	   data	    bss	    dec	    hex	filename
- 204288	    964	 475316	 680568	  a6278	Control_Module.elf
-arm-none-eabi-objcopy  -O binary Control_Module.elf  "Control_Module.bin"
+ 204200	    964	 475324	 680488	  a6228	Control_Module.elf
 Finished building: default.size.stdout
- 
-Finished building: Control_Module.bin
- 
-Finished building: Control_Module.list
- 
-23:15:14 **** Incremental Build of configuration Debug for project Control_Module ****
-make -j16 all 
-arm-none-eabi-gcc "../AGR_Library_CM/Module_Common/Driver_Interface/CDI/DOP_Mngr/Src/data_object_dictionaries.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32H743xx -c -Og -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"AGR_Library_CM/Module_Common/Driver_Interface/CDI/DOP_Mngr/Src/data_object_dictionaries.d" -MT"AGR_Library_CM/Module_Common/Driver_Interface/CDI/DOP_Mngr/Src/data_object_dictionaries.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "AGR_Library_CM/Module_Common/Driver_Interface/CDI/DOP_Mngr/Src/data_object_dictionaries.o" @"AGR_Library_CM/Module_Common/Driver_Interface/CDI/DOP_Mngr/Src/data_object.c_includes.args"
-arm-none-eabi-gcc -o "Control_Module.elf" @"objects.list"   -mcpu=cortex-m7 -T"C:\Users\INVINCIBLE\Documents\GitHub\WS_CM_1NE\WS_CM\Control_Module\STM32H743ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Control_Module.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: Control_Module.elf
- 
-arm-none-eabi-size  Control_Module.elf 
-arm-none-eabi-objdump -h -S Control_Module.elf  > "Control_Module.list"
-   text	   data	    bss	    dec	    hex	filename
- 204288	    964	 475316	 680568	  a6278	Control_Module.elf
-arm-none-eabi-objcopy  -O binary Control_Module.elf  "Control_Module.bin"
-Finished building: default.size.stdout
- 
-Finished building: Control_Module.bin
- 
-Finished building: Control_Module.list
- 
-23:16:13 **** Incremental Build of configuration Debug for project Control_Module ****
-make -j16 all 
-arm-none-eabi-gcc -o "Control_Module.elf" @"objects.list"   -mcpu=cortex-m7 -T"C:\Users\INVINCIBLE\Documents\GitHub\WS_CM_1NE\WS_CM\Control_Module\STM32H743ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Control_Module.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: Control_Module.elf
- 
-arm-none-eabi-size  Control_Module.elf 
-arm-none-eabi-objdump -h -S Control_Module.elf  > "Control_Module.list"
-   text	   data	    bss	    dec	    hex	filename
- 204288	    964	 475316	 680568	  a6278	Control_Module.elf
-arm-none-eabi-objcopy  -O binary Control_Module.elf  "Control_Module.bin"
-Finished building: default.size.stdout
- 
-Finished building: Control_Module.bin
- 
-Finished building: Control_Module.list
  
