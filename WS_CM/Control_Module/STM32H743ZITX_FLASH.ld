@@ -155,7 +155,7 @@ SECTIONS
     .AXIBUS_DATA (NOLOAD) :
   {
   	/* WalkONSuit5 Address */
-	. = ABSOLUTE(0x2406c2d0); 
+	. = ABSOLUTE(0x2406c2ec); 
   	/* MiniCM Address */
   	/* . = ABSOLUTE(0x24030000); */
   	

@@ -43,9 +43,8 @@ uint8_t ListPDO[10] = {
 		TASK_ID_MIDLEVEL,  PDO_ID_MIDLEVEL_REF_POSITION,
 };
 
-float s2x = 0;
-float s2y = 0;
-float s2z = 0;
+int16_t quatVal[4] = {0};
+float grfVal[9] = {0};
 
 /**
  *------------------------------------------------------------
@@ -600,11 +599,21 @@ void Activate_MD_Msg_Hdlr_task(int MD_idx)
     DOPI_AppendSDO(&sdo_unit, &sdo_msg);
 
     /*(2) Set MSG PDO */
-    uint8_t    t_ListPDO_size = 3;
-    uint8_t t_ListPDO[6]  = {
+    uint8_t    t_ListPDO_size = 15;
+    uint8_t t_ListPDO[30]  = {
+    		TASK_ID_GAIT, 	   PDO_ID_GAIT_QUATERNION,
+
     	    TASK_ID_GRF,	   PDO_ID_GRF_S2X,
     		TASK_ID_GRF,	   PDO_ID_GRF_S2Y,
     		TASK_ID_GRF,	   PDO_ID_GRF_S2Z,
+
+    	    TASK_ID_GRF,	   PDO_ID_GRF_S3X,
+    		TASK_ID_GRF,	   PDO_ID_GRF_S3Y,
+    		TASK_ID_GRF,	   PDO_ID_GRF_S3Z,
+
+    	    TASK_ID_GRF,	   PDO_ID_GRF_S4X,
+    		TASK_ID_GRF,	   PDO_ID_GRF_S4Y,
+    		TASK_ID_GRF,	   PDO_ID_GRF_S4Z,
     };
 
     sdo_unit = DOPI_CreateSDOUnit(&md_obj[MD_idx].bb, TASK_ID_MSG,      SDO_ID_MSG_PDO_LIST,         SDO_REQU, t_ListPDO_size);
@@ -1031,11 +1040,17 @@ static void SetupDOD(MD_Obj* obj)
     //}
 
     /* GRF */
-    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S2X,    &s2x);
-    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S2Y,    &s2y);
-    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S2Z,    &s2z);
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S2X,    &grfVal[0]);
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S2Y,    &grfVal[1]);
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S2Z,    &grfVal[2]);
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S3X,    &grfVal[3]);
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S3Y,    &grfVal[4]);
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S3Z,    &grfVal[5]);
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S4X,    &grfVal[6]);
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S4Y,    &grfVal[7]);
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S4Z,    &grfVal[8]);
 
-
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GAIT, PDO_ID_GAIT_QUATERNION,    &quatVal[0]);
     /* Core */
 
     /* Exts

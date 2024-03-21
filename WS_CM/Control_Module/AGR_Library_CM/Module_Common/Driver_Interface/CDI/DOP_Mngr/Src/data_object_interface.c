@@ -549,6 +549,9 @@ static int CheckSDO(uint8_t t_taskID, uint16_t t_SDOID)
 	case TASK_ID_GAIT:
 		if(t_SDOID >= SDO_ID_GAIT_NUM)		return DOP_STATUS_SDO_SET_FAIL;
 		break;
+	case TASK_ID_GRF:
+		if(t_SDOID >= SDO_ID_GRF_NUM)		return DOP_STATUS_SDO_SET_FAIL;
+		break;
 	case TASK_ID_SYSMNGT:
 		if(t_SDOID >= SDO_ID_SYSMNGT_NUM)	return DOP_STATUS_SDO_SET_FAIL;
 		break;

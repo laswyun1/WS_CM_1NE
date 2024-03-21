@@ -257,28 +257,28 @@ static void StateOff_Run(void)
     osDelay(10);
     UpdateJointStateAndError();
 
-    static uint32_t chke = 0;
-
-    if (chke == 0){
-    	SetPDO_1NE(14);
-    }
-
-    if (chke == 1000){
-    	SetALLRoutines_1NE();
-    }
-
-    if (chke == 3000){
-    	SetALLEnableStates_1NE();
-    }
-
-    chke++;
+//    static uint32_t chke = 0;
+//
+//    if (chke == 0){
+//    	SetPDO_1NE(14);
+//    }
+//
+//    if (chke == 1000){
+//    	SetALLRoutines_1NE();
+//    }
+//
+//    if (chke == 3000){
+//    	SetALLEnableStates_1NE();
+//    }
+//
+//    chke++;
 
     if (!msg_activate)
     {
         if (is_start > 300) {
         	 BeepAlert(BEEP_ALERT_FREQ_HIGH, BEEP_ALERT_DUTY, BEEP_ALERT_TIME_LONG, BEEP_ALERT_TIME_VERY_SHORT);
         	 BeepAlert(BEEP_ALERT_FREQ_LOW,  BEEP_ALERT_DUTY, BEEP_ALERT_TIME_LONG, BEEP_ALERT_TIME_VERY_SHORT);
-//        	Activate_All_MD_Msg_Hdlr_task();
+        	Activate_All_MD_Msg_Hdlr_task();
         	msg_activate = 1;
         }
     }

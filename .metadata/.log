@@ -1,0 +1,18 @@
+!SESSION 2024-03-21 21:29:45.440 -----------------------------------------------
+eclipse.buildId=Version 1.14.1
+java.version=17.0.8.1
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=ko_KR
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2024-03-21 21:30:05.218
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2024-03-21 21:30:05.225
+!MESSAGE Log4j2 initialized with config file C:\Users\INVINCIBLE\Documents\GitHub\WS_CM_1NE\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2024-03-21 21:30:06.871
+!MESSAGE Started RMI Server, listening on port 41338
+
+!ENTRY org.eclipse.cdt.core 1 0 2024-03-21 21:30:44.977
+!MESSAGE Indexed 'Control_Module' (294 sources, 666 headers) in 16.3 sec: 91,339 declarations; 328,742 references; 3 unresolved inclusions; 7,198 syntax errors; 426 unresolved names (0.1%)
