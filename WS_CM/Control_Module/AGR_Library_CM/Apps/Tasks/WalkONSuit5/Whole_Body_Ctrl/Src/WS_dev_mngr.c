@@ -1026,19 +1026,19 @@ static void SetupDOD(MD_Obj* obj)
 
 
     /* GRF */
-    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GAIT, PDO_ID_GAIT_QUATERNION,    &quatVal[0]);
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GAIT, PDO_ID_GAIT_QUATERNION,     &quatVal[0]);
 
-    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S2X,    &grfVal[0]);
-    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S2Y,    &grfVal[1]);
-    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S2Z,    &grfVal[2]);
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S2X,   		    &grfVal[0]);
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S2Y,    			&grfVal[1]);
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S2Z,    			&grfVal[2]);
 
-    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S3X,    &grfVal[3]);
-    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S3Y,    &grfVal[4]);
-    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S3Z,    &grfVal[5]);
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S3X,    			&grfVal[3]);
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S3Y,    			&grfVal[4]);
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S3Z,    			&grfVal[5]);
 
-    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S4X,    &grfVal[6]);
-    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S4Y,    &grfVal[7]);
-    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S4Z,    &grfVal[8]);
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S4X,    			&grfVal[6]);
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S4Y,    			&grfVal[7]);
+    DOPI_SetPDOAddr(&obj->bb, TASK_ID_GRF, PDO_ID_GRF_S4Z,    			&grfVal[8]);
 
     /* Core */
 

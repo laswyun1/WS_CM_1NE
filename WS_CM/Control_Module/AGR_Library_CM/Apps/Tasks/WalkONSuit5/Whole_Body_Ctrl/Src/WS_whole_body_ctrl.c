@@ -293,10 +293,10 @@ static void StateOff_Run(void)
         }
     }
 
-//    if (as1 == 1){
-//    	Activate_All_MD_Msg_Hdlr_task();
-//    	as1 = 0;
-//    }
+    if (as1 == 1){
+    	Activate_All_MD_Msg_Hdlr_task();
+    	as1 = 0;
+    }
 
 //    if (test_Enable == 1)
 //    {

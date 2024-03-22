@@ -26,3 +26,18 @@ java.lang.Exception: File: C:\Users\INVINCIBLE\Documents\GitHub\WS_CM_1NE\WS_CM\
 	at com.st.stm32cube.ide.mcu.stackanalyzer.ui.StackAnalyzerView.inputChanged(StackAnalyzerView.java:954)
 	at com.st.stm32cube.ide.mcu.stackanalyzer.ui.StackAnalyzerView.lambda$16(StackAnalyzerView.java:1327)
 	at java.base/java.lang.Thread.run(Thread.java:833)
+!SESSION 2024-03-22 00:33:31.241 -----------------------------------------------
+eclipse.buildId=Version 1.14.1
+java.version=17.0.8.1
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=ko_KR
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2024-03-22 00:33:42.783
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2024-03-22 00:33:42.783
+!MESSAGE Log4j2 initialized with config file C:\Users\INVINCIBLE\Documents\GitHub\WS_CM_1NE\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2024-03-22 00:33:46.299
+!MESSAGE Started RMI Server, listening on port 41337
